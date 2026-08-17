@@ -1,6 +1,6 @@
 {
-  "name": "bolt",
-  "description": "An AI Agent",
+  "name": "7system-builder",
+  "description": "Plataforma de desenvolvimento de sistemas com inteligência artificial",
   "private": true,
   "license": "MIT",
   "sideEffects": false,
