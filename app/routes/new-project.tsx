@@ -251,9 +251,33 @@ Crie o projeto completo chamado "${projectName.trim()}".
   }
 
   function handleCreate() {
-    if (!canCreate) {
-      return;
-    }
+  if (!canCreate) {
+    return;
+  }
+
+  const prompt = buildPrompt();
+
+  const project = saveProject({
+    id: editingId ?? undefined,
+
+    name: projectName,
+    type: projectType,
+    description,
+
+    useSupabase,
+    responsive,
+
+    status: 'building',
+
+    lastPrompt: prompt,
+  });
+
+  navigate(
+    `/builder?projectId=${encodeURIComponent(
+      project.id,
+    )}&prompt=${encodeURIComponent(prompt)}`,
+  );
+}
 
     const prompt = buildPrompt();
 
