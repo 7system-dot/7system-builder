@@ -1,3 +1,5 @@
+import { useEffect, useState, } from 'react';
+import { getProjects, type ProjectRecord,} from '~/lib/projects/project-storage.client';
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { Link } from '@remix-run/react';
 
