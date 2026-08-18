@@ -144,18 +144,38 @@ export default function Projects() {
     });
   }, [projects, search, status]);
 
-  function handleDelete(project: ProjectRecord) {
-    const confirmed = window.confirm(
-      `Deseja realmente excluir o projeto "${project.name}"?`,
-    );
+    async function handleDelete(
+    project: ProjectRecord,
+  ) {
+    const confirmed =
+      window.confirm(
+        `Deseja realmente excluir o projeto "${project.name}"?`,
+      );
 
     if (!confirmed) {
       return;
     }
 
-    deleteProject(project.id);
+    try {
+      await deleteProject(
+        project.id,
+      );
 
-    setProjects(getProjects());
+      const loadedProjects =
+        await getProjects();
+
+      setProjects(
+        loadedProjects,
+      );
+    } catch (error) {
+      console.error(error);
+
+      window.alert(
+        error instanceof Error
+          ? error.message
+          : 'Erro ao excluir projeto.',
+      );
+    }
   }
 
   function handleEdit(project: ProjectRecord) {
