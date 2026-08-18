@@ -1,3 +1,4 @@
+import { templates, } from '~/lib/templates/template-data';
 import { useEffect, useState, } from 'react';
 import { getProjects, type ProjectRecord,} from '~/lib/projects/project-storage.client';
 import type { MetaFunction } from '@remix-run/cloudflare';
@@ -58,7 +59,7 @@ export default function Dashboard() {
     },
     {
       title: 'Templates',
-      value: '0',
+      value: String(templates.length),
       icon: LayoutTemplate,
     },
   ];
