@@ -279,7 +279,6 @@ Crie o projeto completo chamado "${projectName.trim()}".
   }
 
   return (
-  return (
     <AppShell>
       <div
         className="min-h-screen"
