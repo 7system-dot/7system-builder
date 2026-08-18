@@ -38,7 +38,7 @@ const navigation = [
     label: 'Templates',
     path: '/templates',
     icon: LayoutTemplate,
-    enabled: false,
+    enabled: true,
   },
   {
     label: 'Builder IA',
