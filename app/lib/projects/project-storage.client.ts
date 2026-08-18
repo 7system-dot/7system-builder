@@ -17,6 +17,9 @@ export interface ProjectRecord {
   type: ProjectType;
   description: string;
 
+  templateId?: string;
+  templateName?: string;
+
   useSupabase: boolean;
   responsive: boolean;
 
@@ -34,6 +37,9 @@ export interface SaveProjectInput {
   name: string;
   type: ProjectType;
   description: string;
+
+  templateId?: string;
+  templateName?: string;
 
   useSupabase: boolean;
   responsive: boolean;
@@ -126,6 +132,14 @@ export function saveProject(
     name: input.name.trim(),
     type: input.type,
     description: input.description.trim(),
+
+    templateId:
+    input.templateId ??
+    existingProject?.templateId,
+
+    templateName:
+    input.templateName ??
+    existingProject?.templateName,
 
     useSupabase: input.useSupabase,
     responsive: input.responsive,
