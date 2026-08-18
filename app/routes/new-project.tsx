@@ -376,8 +376,10 @@ export default function NewProject() {
   );
 
   const canCreate =
-    projectName.trim().length >= 2 &&
-    description.trim().length >= 10;
+   !saving &&
+   !loadingProject &&
+   projectName.trim().length >= 2 &&
+   description.trim().length >= 10;
 
   function buildPrompt() {
     return `
@@ -430,38 +432,53 @@ Crie o projeto completo chamado "${projectName.trim()}".
 `.trim();
   }
 
-    function handleCreate() {
+     async function handleCreate() {
     if (!canCreate) {
       return;
     }
 
-    const prompt = buildPrompt();
+    setSaving(true);
+    setErrorMessage('');
 
-    const project = saveProject({
-      id: editingId ?? undefined,
-      name: projectName,
-      type: projectType,
-      description,
+    try {
+      const prompt = buildPrompt();
 
-      templateId:
-        selectedTemplate?.id,
+      const project = await saveProject({
+        id: editingId ?? undefined,
 
-      templateName:
-        selectedTemplate?.name,
-  
-      useSupabase,
-      responsive,
+        name: projectName,
+        type: projectType,
+        description,
 
-      status: 'building',
+        templateId: selectedTemplate?.id,
+        templateName: selectedTemplate?.name,
 
-      lastPrompt: prompt,
-    });
+        useSupabase,
+        responsive,
 
-    navigate(
-      `/builder?projectId=${encodeURIComponent(
-        project.id,
-      )}&prompt=${encodeURIComponent(prompt)}`,
-    );
+        status: 'building',
+
+        lastPrompt: prompt,
+      });
+
+      navigate(
+        `/builder?projectId=${encodeURIComponent(
+          project.id,
+        )}&prompt=${encodeURIComponent(
+          prompt,
+        )}`,
+      );
+    } catch (error) {
+      console.error(error);
+
+      setErrorMessage(
+        error instanceof Error
+          ? error.message
+          : 'Não foi possível salvar o projeto.',
+      );
+    } finally {
+      setSaving(false);
+    }
   }
 
   return (
