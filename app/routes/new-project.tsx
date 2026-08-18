@@ -296,6 +296,12 @@ Crie o projeto completo chamado "${projectName.trim()}".
       type: projectType,
       description,
 
+      templateId:
+        selectedTemplate?.id,
+
+      templateName:
+        selectedTemplate?.name,
+  
       useSupabase,
       responsive,
 
