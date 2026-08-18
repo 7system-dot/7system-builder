@@ -92,8 +92,34 @@ export default function Projects() {
   const [status, setStatus] =
     useState<FilterStatus>('all');
 
-  useEffect(() => {
-    setProjects(getProjects());
+    useEffect(() => {
+    let active = true;
+
+    async function loadProjects() {
+      try {
+        await migrateLegacyProjectsToSupabase();
+
+        const loadedProjects =
+          await getProjects();
+
+        if (active) {
+          setProjects(
+            loadedProjects,
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Erro ao carregar projetos:',
+          error,
+        );
+      }
+    }
+
+    void loadProjects();
+
+    return () => {
+      active = false;
+    };
   }, []);
 
   const filteredProjects = useMemo(() => {
