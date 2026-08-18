@@ -192,6 +192,24 @@ export default function NewProject() {
     return;
   }
 
+      useEffect(() => {
+    if (editingId) {
+      return;
+    }
+
+    if (!selectedTemplate) {
+      return;
+    }
+
+    setProjectType(
+      selectedTemplate.projectType,
+    );
+
+    setDescription(
+      selectedTemplate.prompt,
+    );
+  }, [editingId, selectedTemplate]);
+
   const project = getProjectById(editingId);
 
   if (!project) {
