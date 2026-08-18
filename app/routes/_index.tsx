@@ -24,30 +24,45 @@ export const meta: MetaFunction = () => {
   ];
 };
 
-const stats = [
-  {
-    title: 'Projetos',
-    value: '0',
-    icon: FolderKanban,
-  },
-  {
-    title: 'Em desenvolvimento',
-    value: '0',
-    icon: Sparkles,
-  },
-  {
-    title: 'Publicados',
-    value: '0',
-    icon: Rocket,
-  },
-  {
-    title: 'Templates',
-    value: '0',
-    icon: LayoutTemplate,
-  },
-];
-
 export default function Dashboard() {
+    const [projects, setProjects] =
+    useState<ProjectRecord[]>([]);
+
+  useEffect(() => {
+    setProjects(getProjects());
+  }, []);
+
+  const stats = [
+    {
+      title: 'Projetos',
+      value: String(projects.length),
+      icon: FolderKanban,
+    },
+    {
+      title: 'Em desenvolvimento',
+      value: String(
+        projects.filter(
+          (project) => project.status === 'building',
+        ).length,
+      ),
+      icon: Sparkles,
+    },
+    {
+      title: 'Publicados',
+      value: String(
+        projects.filter(
+          (project) => project.status === 'published',
+        ).length,
+      ),
+      icon: Rocket,
+    },
+    {
+      title: 'Templates',
+      value: '0',
+      icon: LayoutTemplate,
+    },
+  ];
+  
   return (
     <AppShell>
       <div className="min-h-screen">
