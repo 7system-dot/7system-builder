@@ -27,6 +27,7 @@ import { AppShell } from '~/components/dashboard/AppShell';
 import {
   deleteProject,
   getProjects,
+  migrateLegacyProjectsToSupabase,
   projectStatusLabels,
   projectTypeLabels,
   type ProjectRecord,
