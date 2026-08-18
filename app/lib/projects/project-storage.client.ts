@@ -1,3 +1,7 @@
+import {
+  getSupabaseClient,
+} from '~/lib/supabase/supabase.client';
+
 export type ProjectType =
   | 'saas'
   | 'ecommerce'
@@ -13,6 +17,7 @@ export type ProjectStatus =
 
 export interface ProjectRecord {
   id: string;
+
   name: string;
   type: ProjectType;
   description: string;
@@ -49,163 +54,550 @@ export interface SaveProjectInput {
   lastPrompt?: string;
 }
 
-const STORAGE_KEY = '7system-builder.projects';
+interface BuilderProjectRow {
+  id: string;
+  user_id: string;
 
-function isBrowser() {
-  return typeof window !== 'undefined';
+  name: string;
+  type: ProjectType;
+  description: string;
+
+  template_id: string | null;
+  template_name: string | null;
+
+  use_supabase: boolean;
+  responsive: boolean;
+
+  status: ProjectStatus;
+
+  last_prompt: string | null;
+
+  created_at: string;
+  updated_at: string;
 }
 
-function createId() {
-  if (
-    typeof crypto !== 'undefined' &&
-    typeof crypto.randomUUID === 'function'
-  ) {
-    return crypto.randomUUID();
-  }
+const LEGACY_STORAGE_KEY =
+  '7system-builder.projects';
 
-  return `project-${Date.now()}-${Math.random()
-    .toString(36)
-    .slice(2)}`;
-}
-
-export function getProjects(): ProjectRecord[] {
-  if (!isBrowser()) {
-    return [];
-  }
-
-  try {
-    const raw = window.localStorage.getItem(STORAGE_KEY);
-
-    if (!raw) {
-      return [];
-    }
-
-    const projects = JSON.parse(raw) as ProjectRecord[];
-
-    if (!Array.isArray(projects)) {
-      return [];
-    }
-
-    return projects.sort(
-      (a, b) =>
-        new Date(b.updatedAt).getTime() -
-        new Date(a.updatedAt).getTime(),
-    );
-  } catch {
-    return [];
-  }
-}
-
-function persistProjects(projects: ProjectRecord[]) {
-  if (!isBrowser()) {
-    return;
-  }
-
-  window.localStorage.setItem(
-    STORAGE_KEY,
-    JSON.stringify(projects),
-  );
-}
-
-export function getProjectById(
-  id: string,
-): ProjectRecord | undefined {
-  return getProjects().find(
-    (project) => project.id === id,
-  );
-}
-
-export function saveProject(
-  input: SaveProjectInput,
+function rowToProject(
+  row: BuilderProjectRow,
 ): ProjectRecord {
-  const projects = getProjects();
+  return {
+    id: row.id,
 
-  const existingProject = input.id
-    ? projects.find((project) => project.id === input.id)
-    : undefined;
-
-  const now = new Date().toISOString();
-
-  const project: ProjectRecord = {
-    id: existingProject?.id ?? createId(),
-
-    name: input.name.trim(),
-    type: input.type,
-    description: input.description.trim(),
+    name: row.name,
+    type: row.type,
+    description: row.description,
 
     templateId:
-    input.templateId ??
-    existingProject?.templateId,
+      row.template_id ?? undefined,
 
     templateName:
-    input.templateName ??
-    existingProject?.templateName,
+      row.template_name ?? undefined,
 
-    useSupabase: input.useSupabase,
-    responsive: input.responsive,
+    useSupabase:
+      row.use_supabase,
 
-    status: input.status,
+    responsive:
+      row.responsive,
+
+    status:
+      row.status,
 
     createdAt:
-      existingProject?.createdAt ?? now,
+      row.created_at,
 
-    updatedAt: now,
+    updatedAt:
+      row.updated_at,
 
-    lastPrompt: input.lastPrompt,
+    lastPrompt:
+      row.last_prompt ?? undefined,
   };
-
-  const updatedProjects = existingProject
-    ? projects.map((item) =>
-        item.id === project.id ? project : item,
-      )
-    : [project, ...projects];
-
-  persistProjects(updatedProjects);
-
-  return project;
 }
 
-export function deleteProject(id: string) {
-  const projects = getProjects().filter(
-    (project) => project.id !== id,
-  );
+async function ensureAuthenticatedUser() {
+  const supabase =
+    getSupabaseClient();
 
-  persistProjects(projects);
-}
+  const {
+    data: userData,
+  } = await supabase.auth.getUser();
 
-export function updateProjectStatus(
-  id: string,
-  status: ProjectStatus,
-) {
-  const project = getProjectById(id);
-
-  if (!project) {
-    return;
+  if (userData.user) {
+    return userData.user;
   }
 
-  saveProject({
-    ...project,
-    status,
-  });
+  const {
+    data,
+    error,
+  } =
+    await supabase.auth.signInAnonymously();
+
+  if (error) {
+    throw new Error(
+      `Não foi possível autenticar no Supabase: ${error.message}`,
+    );
+  }
+
+  if (!data.user) {
+    throw new Error(
+      'Supabase não retornou um usuário autenticado.',
+    );
+  }
+
+  return data.user;
 }
 
-export const projectTypeLabels: Record<
-  ProjectType,
-  string
-> = {
-  saas: 'SaaS',
-  ecommerce: 'E-commerce',
-  site: 'Site',
-  catalog: 'Catálogo',
-  pdv: 'PDV',
-  custom: 'Personalizado',
-};
+export async function getProjects():
+  Promise<ProjectRecord[]> {
+  const supabase =
+    getSupabaseClient();
 
-export const projectStatusLabels: Record<
-  ProjectStatus,
-  string
-> = {
-  draft: 'Rascunho',
-  building: 'Em desenvolvimento',
-  published: 'Publicado',
-};
+  const user =
+    await ensureAuthenticatedUser();
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from('builder_projects')
+    .select('*')
+    .eq('user_id', user.id)
+    .order(
+      'updated_at',
+      {
+        ascending: false,
+      },
+    );
+
+  if (error) {
+    throw new Error(
+      `Erro ao carregar projetos: ${error.message}`,
+    );
+  }
+
+  return (
+    (data ?? []) as BuilderProjectRow[]
+  ).map(rowToProject);
+}
+
+export async function getProjectById(
+  id: string,
+): Promise<ProjectRecord | undefined> {
+  const supabase =
+    getSupabaseClient();
+
+  const user =
+    await ensureAuthenticatedUser();
+
+  const {
+    data,
+    error,
+  } = await supabase
+    .from('builder_projects')
+    .select('*')
+    .eq('id', id)
+    .eq('user_id', user.id)
+    .maybeSingle();
+
+  if (error) {
+    throw new Error(
+      `Erro ao carregar projeto: ${error.message}`,
+    );
+  }
+
+  if (!data) {
+    return undefined;
+  }
+
+  return rowToProject(
+    data as BuilderProjectRow,
+  );
+}
+
+export async function saveProject(
+  input: SaveProjectInput,
+): Promise<ProjectRecord> {
+  const supabase =
+    getSupabaseClient();
+
+  const user =
+    await ensureAuthenticatedUser();
+
+  /*
+   * EDITAR PROJETO EXISTENTE
+   */
+  if (input.id) {
+    const updatePayload = {
+      name:
+        input.name.trim(),
+
+      type:
+        input.type,
+
+      description:
+        input.description.trim(),
+
+      use_supabase:
+        input.useSupabase,
+
+      responsive:
+        input.responsive,
+
+      status:
+        input.status,
+
+      last_prompt:
+        input.lastPrompt ?? null,
+
+      ...(input.templateId !== undefined
+        ? {
+            template_id:
+              input.templateId,
+          }
+        : {}),
+
+      ...(input.templateName !== undefined
+        ? {
+            template_name:
+              input.templateName,
+          }
+        : {}),
+    };
+
+    const {
+      data,
+      error,
+    } = await supabase
+      .from('builder_projects')
+      .update(updatePayload)
+      .eq('id', input.id)
+      .eq('user_id', user.id)
+      .select('*')
+      .single();
+
+    if (error) {
+      throw new Error(
+        `Erro ao atualizar projeto: ${error.message}`,
+      );
+    }
+
+    return rowToProject(
+      data as BuilderProjectRow,
+    );
+  }
+
+  /*
+   * CRIAR NOVO PROJETO
+   */
+  const {
+    data,
+    error,
+  } = await supabase
+    .from('builder_projects')
+    .insert({
+      user_id:
+        user.id,
+
+      name:
+        input.name.trim(),
+
+      type:
+        input.type,
+
+      description:
+        input.description.trim(),
+
+      template_id:
+        input.templateId ?? null,
+
+      template_name:
+        input.templateName ?? null,
+
+      use_supabase:
+        input.useSupabase,
+
+      responsive:
+        input.responsive,
+
+      status:
+        input.status,
+
+      last_prompt:
+        input.lastPrompt ?? null,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    throw new Error(
+      `Erro ao criar projeto: ${error.message}`,
+    );
+  }
+
+  return rowToProject(
+    data as BuilderProjectRow,
+  );
+}
+
+export async function deleteProject(
+  id: string,
+): Promise<void> {
+  const supabase =
+    getSupabaseClient();
+
+  const user =
+    await ensureAuthenticatedUser();
+
+  const {
+    error,
+  } = await supabase
+    .from('builder_projects')
+    .delete()
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    throw new Error(
+      `Erro ao excluir projeto: ${error.message}`,
+    );
+  }
+}
+
+export async function updateProjectStatus(
+  id: string,
+  status: ProjectStatus,
+): Promise<void> {
+  const supabase =
+    getSupabaseClient();
+
+  const user =
+    await ensureAuthenticatedUser();
+
+  const {
+    error,
+  } = await supabase
+    .from('builder_projects')
+    .update({
+      status,
+    })
+    .eq('id', id)
+    .eq('user_id', user.id);
+
+  if (error) {
+    throw new Error(
+      `Erro ao atualizar status: ${error.message}`,
+    );
+  }
+}
+
+/*
+ * Migração única:
+ *
+ * localStorage antigo
+ *        ↓
+ * Supabase
+ *        ↓
+ * remove localStorage
+ */
+export async function migrateLegacyProjectsToSupabase():
+  Promise<number> {
+  if (typeof window === 'undefined') {
+    return 0;
+  }
+
+  const raw =
+    window.localStorage.getItem(
+      LEGACY_STORAGE_KEY,
+    );
+
+  if (!raw) {
+    return 0;
+  }
+
+  let legacyProjects:
+    ProjectRecord[];
+
+  try {
+    legacyProjects =
+      JSON.parse(raw) as ProjectRecord[];
+  } catch {
+    console.warn(
+      'Não foi possível interpretar projetos antigos do localStorage.',
+    );
+
+    return 0;
+  }
+
+  if (
+    !Array.isArray(legacyProjects) ||
+    legacyProjects.length === 0
+  ) {
+    window.localStorage.removeItem(
+      LEGACY_STORAGE_KEY,
+    );
+
+    return 0;
+  }
+
+  const supabase =
+    getSupabaseClient();
+
+  const user =
+    await ensureAuthenticatedUser();
+
+  /*
+   * Busca projetos existentes para evitar
+   * duplicação caso a migração seja executada
+   * novamente.
+   */
+  const {
+    data: existingRows,
+    error: existingError,
+  } = await supabase
+    .from('builder_projects')
+    .select(
+      'name, created_at',
+    )
+    .eq(
+      'user_id',
+      user.id,
+    );
+
+  if (existingError) {
+    throw new Error(
+      `Erro ao verificar migração: ${existingError.message}`,
+    );
+  }
+
+  const existingKeys =
+    new Set(
+      (
+        existingRows ?? []
+      ).map(
+        (row) =>
+          `${row.name}|${row.created_at}`,
+      ),
+    );
+
+  let migratedCount = 0;
+
+  for (
+    const project
+    of legacyProjects
+  ) {
+    const createdAt =
+      project.createdAt ??
+      new Date().toISOString();
+
+    const migrationKey =
+      `${project.name}|${createdAt}`;
+
+    if (
+      existingKeys.has(
+        migrationKey,
+      )
+    ) {
+      continue;
+    }
+
+    const {
+      error,
+    } = await supabase
+      .from('builder_projects')
+      .insert({
+        user_id:
+          user.id,
+
+        name:
+          project.name,
+
+        type:
+          project.type,
+
+        description:
+          project.description ?? '',
+
+        template_id:
+          project.templateId ?? null,
+
+        template_name:
+          project.templateName ?? null,
+
+        use_supabase:
+          project.useSupabase ?? true,
+
+        responsive:
+          project.responsive ?? true,
+
+        status:
+          project.status ?? 'draft',
+
+        last_prompt:
+          project.lastPrompt ?? null,
+
+        created_at:
+          createdAt,
+
+        updated_at:
+          project.updatedAt ??
+          createdAt,
+      });
+
+    if (error) {
+      throw new Error(
+        `Erro ao migrar "${project.name}": ${error.message}`,
+      );
+    }
+
+    migratedCount += 1;
+
+    existingKeys.add(
+      migrationKey,
+    );
+  }
+
+  /*
+   * Só remove o armazenamento antigo
+   * depois que toda a migração terminar
+   * corretamente.
+   */
+  window.localStorage.removeItem(
+    LEGACY_STORAGE_KEY,
+  );
+
+  return migratedCount;
+}
+
+export const projectTypeLabels:
+  Record<ProjectType, string> = {
+    saas:
+      'SaaS',
+
+    ecommerce:
+      'E-commerce',
+
+    site:
+      'Site',
+
+    catalog:
+      'Catálogo',
+
+    pdv:
+      'PDV',
+
+    custom:
+      'Personalizado',
+  };
+
+export const projectStatusLabels:
+  Record<ProjectStatus, string> = {
+    draft:
+      'Rascunho',
+
+    building:
+      'Em desenvolvimento',
+
+    published:
+      'Publicado',
+  };
