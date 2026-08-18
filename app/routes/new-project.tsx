@@ -17,6 +17,7 @@ import {
 
 import { AppShell } from '~/components/dashboard/AppShell';
 import { getProjectById, saveProject, } from '~/lib/projects/project-storage.client';
+import { getTemplateById, } from '~/lib/templates/template-data';
 
 export const meta: MetaFunction = () => {
   return [
