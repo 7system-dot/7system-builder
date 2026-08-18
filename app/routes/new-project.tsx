@@ -864,6 +864,24 @@ Crie o projeto completo chamado "${projectName.trim()}".
                   
                 </div>
 
+                {errorMessage && (
+  <div
+    className="mt-6 rounded-xl border p-4 text-sm"
+    style={{
+      borderColor:
+        '#FCA5A5',
+
+      backgroundColor:
+        '#FEF2F2',
+
+      color:
+        '#B91C1C',
+    }}
+  >
+    {errorMessage}
+  </div>
+)}
+
                 <button
                   type="button"
                   disabled={!canCreate}
@@ -876,9 +894,11 @@ Crie o projeto completo chamado "${projectName.trim()}".
                 >
                   <Sparkles size={19} />
 
-                  {editingId
-                  ? 'Salvar e abrir com IA'
-                  : 'Criar com IA'}
+                  {saving
+  ? 'Salvando no Supabase...'
+  : editingId
+    ? 'Salvar e abrir com IA'
+    : 'Criar com IA'}
                 </button>
 
                 {!canCreate && (
