@@ -312,7 +312,7 @@ Crie o projeto completo chamado "${projectName.trim()}".
               className="text-2xl font-bold"
               style={{ color: '#0B1739' }}
             >
-              Novo Projeto
+              {editingId ? 'Editar Projeto' : 'Novo Projeto'}
             </h1>
 
             <p
@@ -656,7 +656,9 @@ Crie o projeto completo chamado "${projectName.trim()}".
                 >
                   <Sparkles size={19} />
 
-                  Criar com IA
+                  {editingId
+                  ? 'Salvar e abrir com IA'
+                  : 'Criar com IA'}
                 </button>
 
                 {!canCreate && (
