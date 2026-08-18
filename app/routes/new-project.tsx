@@ -16,7 +16,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '~/components/dashboard/AppShell';
-import { getProjectById, saveProject, } from '~/lib/projects/project-storage.client';
+import { getProjectById, migrateLegacyProjectsToSupabase, saveProject, } from '~/lib/projects/project-storage.client';
 import { getTemplateById, } from '~/lib/templates/template-data';
 
 export const meta: MetaFunction = () => {
@@ -166,62 +166,209 @@ Organize o sistema em módulos reutilizáveis e mantenha o código escalável.
 };
 
 export default function NewProject() {
-  const navigate = useNavigate();
-  const [searchParams] = useSearchParams();
-  const editingId = searchParams.get('id');
-  
-    const templateId =
+
+    const navigate =
+    useNavigate();
+
+  const [searchParams] =
+    useSearchParams();
+
+  const editingId =
+    searchParams.get('id');
+
+  const templateIdFromUrl =
     searchParams.get('template');
 
-  const selectedTemplate = useMemo(
-    () =>
-      templateId
-        ? getTemplateById(templateId)
-        : undefined,
-    [templateId],
-  );
+  const [
+    projectName,
+    setProjectName,
+  ] =
+    useState('');
 
-  const [projectName, setProjectName] = useState('');
-  const [projectType, setProjectType] = useState<ProjectType>('saas');
-  const [description, setDescription] = useState('');
-  const [useSupabase, setUseSupabase] = useState(true);
-  const [responsive, setResponsive] = useState(true);
+  const [
+    projectType,
+    setProjectType,
+  ] =
+    useState<ProjectType>('saas');
 
+  const [
+    description,
+    setDescription,
+  ] =
+    useState('');
+
+  const [
+    useSupabase,
+    setUseSupabase,
+  ] =
+    useState(true);
+
+  const [
+    responsive,
+    setResponsive,
+  ] =
+    useState(true);
+
+  const [
+    activeTemplateId,
+    setActiveTemplateId,
+  ] =
+    useState<string | null>(
+      templateIdFromUrl,
+    );
+
+  const [
+    saving,
+    setSaving,
+  ] =
+    useState(false);
+
+  const [
+    loadingProject,
+    setLoadingProject,
+  ] =
+    useState(
+      Boolean(editingId),
+    );
+
+  const [
+    errorMessage,
+    setErrorMessage,
+  ] =
+    useState('');
+
+  const selectedTemplate =
+    useMemo(
+      () =>
+        activeTemplateId
+          ? getTemplateById(
+              activeTemplateId,
+            )
+          : undefined,
+      [activeTemplateId],
+    );
+
+  /*
+   * EDITAR PROJETO
+   */
   useEffect(() => {
-  if (!editingId) {
-    return;
-  }
+    if (!editingId) {
+      return;
+    }
 
-      useEffect(() => {
+    let cancelled = false;
+
+    async function loadProject() {
+      setLoadingProject(true);
+      setErrorMessage('');
+
+      try {
+        await migrateLegacyProjectsToSupabase();
+
+        const project =
+          await getProjectById(
+            editingId as string,
+          );
+
+        if (cancelled) {
+          return;
+        }
+
+        if (!project) {
+          setErrorMessage(
+            'Projeto não encontrado.',
+          );
+
+          return;
+        }
+
+        setProjectName(
+          project.name,
+        );
+
+        setProjectType(
+          project.type,
+        );
+
+        setDescription(
+          project.description,
+        );
+
+        setUseSupabase(
+          project.useSupabase,
+        );
+
+        setResponsive(
+          project.responsive,
+        );
+
+        setActiveTemplateId(
+          project.templateId ??
+            null,
+        );
+      } catch (error) {
+        if (cancelled) {
+          return;
+        }
+
+        setErrorMessage(
+          error instanceof Error
+            ? error.message
+            : 'Erro ao carregar projeto.',
+        );
+      } finally {
+        if (!cancelled) {
+          setLoadingProject(
+            false,
+          );
+        }
+      }
+    }
+
+    void loadProject();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [editingId]);
+
+  /*
+   * NOVO PROJETO A PARTIR
+   * DE TEMPLATE
+   */
+  useEffect(() => {
     if (editingId) {
       return;
     }
 
-    if (!selectedTemplate) {
+    if (!templateIdFromUrl) {
       return;
     }
 
+    const template =
+      getTemplateById(
+        templateIdFromUrl,
+      );
+
+    if (!template) {
+      return;
+    }
+
+    setActiveTemplateId(
+      template.id,
+    );
+
     setProjectType(
-      selectedTemplate.projectType,
+      template.projectType,
     );
 
     setDescription(
-      selectedTemplate.prompt,
+      template.prompt,
     );
-  }, [editingId, selectedTemplate]);
-
-  const project = getProjectById(editingId);
-
-  if (!project) {
-    return;
-  }
-
-  setProjectName(project.name);
-  setProjectType(project.type);
-  setDescription(project.description);
-  setUseSupabase(project.useSupabase);
-  setResponsive(project.responsive);
-}, [editingId]);
+  }, [
+    editingId,
+    templateIdFromUrl,
+  ]);
 
   const selectedProject = useMemo(
     () => projectTypes.find((item) => item.id === projectType),
