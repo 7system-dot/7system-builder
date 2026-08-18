@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState, } from 'react';
 import type { MetaFunction } from '@remix-run/cloudflare';
-import { useNavigate } from '@remix-run/react';
+import { useNavigate, useSearchParams, } from '@remix-run/react';
 
 import {
   ArrowLeft,
@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 
 import { AppShell } from '~/components/dashboard/AppShell';
+import { getProjectById, saveProject, } from '~/lib/projects/project-storage.client';
 
 export const meta: MetaFunction = () => {
   return [
@@ -165,12 +166,32 @@ Organize o sistema em módulos reutilizáveis e mantenha o código escalável.
 
 export default function NewProject() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const editingId = searchParams.get('id');
 
   const [projectName, setProjectName] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>('saas');
   const [description, setDescription] = useState('');
   const [useSupabase, setUseSupabase] = useState(true);
   const [responsive, setResponsive] = useState(true);
+
+  useEffect(() => {
+  if (!editingId) {
+    return;
+  }
+
+  const project = getProjectById(editingId);
+
+  if (!project) {
+    return;
+  }
+
+  setProjectName(project.name);
+  setProjectType(project.type);
+  setDescription(project.description);
+  setUseSupabase(project.useSupabase);
+  setResponsive(project.responsive);
+}, [editingId]);
 
   const selectedProject = useMemo(
     () => projectTypes.find((item) => item.id === projectType),
