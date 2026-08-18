@@ -242,6 +242,9 @@ ${projectName.trim()}
 TIPO DO PROJETO:
 ${selectedProject?.title ?? projectType}
 
+TEMPLATE BASE:
+${selectedTemplate?.name ?? 'Personalizado'}
+
 DESCRIÇÃO E REQUISITOS:
 ${description.trim()}
 
