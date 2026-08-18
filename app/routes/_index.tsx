@@ -73,7 +73,7 @@ export default function Dashboard() {
           </div>
 
           <Link
-            to="/builder"
+            to="/new-project"
             className="flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold transition-all"
             style={{
               backgroundColor: '#D4A72C',
@@ -176,7 +176,7 @@ export default function Dashboard() {
                 </p>
 
                 <Link
-                  to="/builder"
+                  to="/new-project"
                   className="mt-6 inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold"
                   style={{
                     backgroundColor: '#D4A72C',
