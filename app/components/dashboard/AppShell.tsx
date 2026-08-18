@@ -32,7 +32,7 @@ const navigation = [
     label: 'Meus Projetos',
     path: '/projects',
     icon: FolderKanban,
-    enabled: false,
+    enabled: true,
   },
   {
     label: 'Templates',
