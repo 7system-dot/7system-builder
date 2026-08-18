@@ -169,6 +169,17 @@ export default function NewProject() {
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const editingId = searchParams.get('id');
+  
+    const templateId =
+    searchParams.get('template');
+
+  const selectedTemplate = useMemo(
+    () =>
+      templateId
+        ? getTemplateById(templateId)
+        : undefined,
+    [templateId],
+  );
 
   const [projectName, setProjectName] = useState('');
   const [projectType, setProjectType] = useState<ProjectType>('saas');
