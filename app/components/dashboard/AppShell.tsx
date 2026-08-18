@@ -26,7 +26,7 @@ const navigation = [
     label: 'Novo Projeto',
     path: '/new-project',
     icon: PlusCircle,
-    enabled: false,
+    enabled: true,
   },
   {
     label: 'Meus Projetos',
