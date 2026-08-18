@@ -176,7 +176,7 @@ export default function Dashboard() {
                 </p>
 
                 <Link
-                  to="/new-project"
+                  to="/builder"
                   className="mt-6 inline-flex items-center gap-2 rounded-lg px-5 py-3 text-sm font-semibold"
                   style={{
                     backgroundColor: '#D4A72C',
