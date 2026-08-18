@@ -1,6 +1,6 @@
 import { templates, } from '~/lib/templates/template-data';
 import { useEffect, useState, } from 'react';
-import { getProjects, type ProjectRecord,} from '~/lib/projects/project-storage.client';
+import { getProjects, migrateLegacyProjectsToSupabase, type ProjectRecord, } from '~/lib/projects/project-storage.client';
 import type { MetaFunction } from '@remix-run/cloudflare';
 import { Link } from '@remix-run/react';
 
@@ -30,9 +30,34 @@ export default function Dashboard() {
     useState<ProjectRecord[]>([]);
 
   useEffect(() => {
-    setProjects(getProjects());
-  }, []);
+    let active = true;
 
+    async function loadProjects() {
+      try {
+        await migrateLegacyProjectsToSupabase();
+
+        const loadedProjects =
+          await getProjects();
+
+        if (active) {
+          setProjects(
+            loadedProjects,
+          );
+        }
+      } catch (error) {
+        console.error(
+          'Erro ao carregar projetos do Dashboard:',
+          error,
+        );
+      }
+    }
+
+    void loadProjects();
+
+    return () => {
+      active = false;
+    };
+  }, []);
   const stats = [
     {
       title: 'Projetos',
