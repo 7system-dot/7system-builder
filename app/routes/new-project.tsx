@@ -250,40 +250,35 @@ Crie o projeto completo chamado "${projectName.trim()}".
 `.trim();
   }
 
-  function handleCreate() {
-  if (!canCreate) {
-    return;
-  }
-
-  const prompt = buildPrompt();
-
-  const project = saveProject({
-    id: editingId ?? undefined,
-
-    name: projectName,
-    type: projectType,
-    description,
-
-    useSupabase,
-    responsive,
-
-    status: 'building',
-
-    lastPrompt: prompt,
-  });
-
-  navigate(
-    `/builder?projectId=${encodeURIComponent(
-      project.id,
-    )}&prompt=${encodeURIComponent(prompt)}`,
-  );
-}
+    function handleCreate() {
+    if (!canCreate) {
+      return;
+    }
 
     const prompt = buildPrompt();
 
-    navigate(`/builder?prompt=${encodeURIComponent(prompt)}`);
+    const project = saveProject({
+      id: editingId ?? undefined,
+      name: projectName,
+      type: projectType,
+      description,
+
+      useSupabase,
+      responsive,
+
+      status: 'building',
+
+      lastPrompt: prompt,
+    });
+
+    navigate(
+      `/builder?projectId=${encodeURIComponent(
+        project.id,
+      )}&prompt=${encodeURIComponent(prompt)}`,
+    );
   }
 
+  return (
   return (
     <AppShell>
       <div
