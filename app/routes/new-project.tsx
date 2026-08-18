@@ -669,6 +669,29 @@ Crie o projeto completo chamado "${projectName.trim()}".
                   >
                     {selectedProject?.title}
                   </div>
+
+                     {selectedTemplate && (
+                  <>
+                    <div
+                      className="mt-4 text-xs font-semibold"
+                      style={{
+                        color: '#94A3B8',
+                      }}
+                    >
+                      TEMPLATE
+                    </div>
+
+                    <div
+                      className="mt-1"
+                      style={{
+                        color: '#FFFFFF',
+                      }}
+                    >
+                      {selectedTemplate.name}
+                    </div>
+                  </>
+                )}
+                  
                 </div>
 
                 <button
