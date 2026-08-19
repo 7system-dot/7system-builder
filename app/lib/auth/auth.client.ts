@@ -824,3 +824,198 @@ export function subscribeToAuthChanges(
       .unsubscribe();
   };
 }
+
+/*
+ * -------------------------------------------------
+ * RETORNO DOS E-MAILS DE AUTENTICAÇÃO
+ * -------------------------------------------------
+ */
+
+/*
+ * Processa o retorno do Supabase depois
+ * que o usuário clica em:
+ *
+ * - confirmação de e-mail;
+ * - vinculação de e-mail;
+ * - recuperação de senha.
+ *
+ * Suporta:
+ *
+ * 1. sessão processada automaticamente
+ *    pelo Supabase no navegador;
+ *
+ * 2. retorno PKCE com ?code=...
+ */
+export async function completeAuthRedirect():
+  Promise<AuthResult | null> {
+  if (
+    typeof window === 'undefined'
+  ) {
+    throw new BuilderAuthError(
+      'BROWSER_REQUIRED',
+      'O retorno da autenticação precisa ser processado no navegador.',
+    );
+  }
+
+  const supabase =
+    getSupabaseClient();
+
+  const currentUrl =
+    new URL(
+      window.location.href,
+    );
+
+  /*
+   * Verifica erros enviados pelo Supabase
+   * na query string.
+   */
+  const queryError =
+    currentUrl.searchParams.get(
+      'error_description',
+    ) ??
+    currentUrl.searchParams.get(
+      'error',
+    );
+
+  /*
+   * Alguns fluxos podem colocar os dados
+   * no fragmento/hash da URL.
+   */
+  const hashParams =
+    new URLSearchParams(
+      currentUrl.hash.replace(
+        /^#/,
+        '',
+      ),
+    );
+
+  const hashError =
+    hashParams.get(
+      'error_description',
+    ) ??
+    hashParams.get(
+      'error',
+    );
+
+  const authError =
+    queryError ??
+    hashError;
+
+  if (authError) {
+    throw new BuilderAuthError(
+      'SUPABASE_AUTH_ERROR',
+      `Falha na confirmação: ${authError}`,
+    );
+  }
+
+  /*
+   * Se o Supabase retornar um Auth Code,
+   * fazemos a troca por uma sessão.
+   */
+  const code =
+    currentUrl.searchParams.get(
+      'code',
+    );
+
+  if (code) {
+    const {
+      data,
+      error,
+    } =
+      await supabase.auth
+        .exchangeCodeForSession(
+          code,
+        );
+
+    if (error) {
+      throwSupabaseError(
+        'Não foi possível validar o link de confirmação',
+        error,
+      );
+    }
+
+    /*
+     * Remove o código da barra de endereço
+     * depois de processá-lo.
+     */
+    window.history.replaceState(
+      {},
+      document.title,
+      currentUrl.pathname,
+    );
+
+    if (data.user) {
+      return {
+        user:
+          data.user,
+
+        session:
+          data.session,
+      };
+    }
+  }
+
+  /*
+   * Em fluxos processados automaticamente
+   * pelo cliente Supabase, recuperamos
+   * simplesmente a sessão atual.
+   */
+  const {
+    data: sessionData,
+    error: sessionError,
+  } =
+    await supabase.auth
+      .getSession();
+
+  if (sessionError) {
+    throwSupabaseError(
+      'Não foi possível recuperar a sessão de confirmação',
+      sessionError,
+    );
+  }
+
+  if (
+    !sessionData.session
+  ) {
+    return null;
+  }
+
+  const {
+    data: userData,
+    error: userError,
+  } =
+    await supabase.auth
+      .getUser();
+
+  if (userError) {
+    throwSupabaseError(
+      'Não foi possível validar o usuário',
+      userError,
+    );
+  }
+
+  if (!userData.user) {
+    return null;
+  }
+
+  /*
+   * Também limpamos fragmentos de
+   * autenticação da barra de endereço.
+   */
+  if (currentUrl.hash) {
+    window.history.replaceState(
+      {},
+      document.title,
+      currentUrl.pathname,
+    );
+  }
+
+  return {
+    user:
+      userData.user,
+
+    session:
+      sessionData.session,
+  };
+}
+
