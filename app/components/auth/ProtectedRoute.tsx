@@ -19,6 +19,10 @@ import {
   isAnonymousUser,
 } from '~/lib/auth/auth.client';
 
+import {
+  OrganizationProvider,
+} from '~/lib/organizations/OrganizationContext';
+
 interface ProtectedRouteProps {
   children: ReactNode;
 }
@@ -243,8 +247,8 @@ export function ProtectedRoute({
   }
 
   return (
-    <>
-      {children}
-    </>
+     <OrganizationProvider>
+       {children}
+     </OrganizationProvider>
   );
 }

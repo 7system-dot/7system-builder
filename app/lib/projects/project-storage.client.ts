@@ -3,6 +3,10 @@ import {
 } from '~/lib/auth/auth.client';
 
 import {
+  requireActiveOrganization,
+} from '~/lib/organizations/organization.client';
+
+import {
   getSupabaseClient,
 } from '~/lib/supabase/supabase.client';
 
@@ -21,6 +25,8 @@ export type ProjectStatus =
 
 export interface ProjectRecord {
   id: string;
+
+  organizationId?: string;
 
   name: string;
   type: ProjectType;
@@ -60,7 +66,12 @@ export interface SaveProjectInput {
 
 interface BuilderProjectRow {
   id: string;
+
   user_id: string;
+
+  organization_id:
+    | string
+    | null;
 
   name: string;
   type: ProjectType;
@@ -88,6 +99,10 @@ function rowToProject(
 ): ProjectRecord {
   return {
     id: row.id,
+
+    organizationId:
+    row.organization_id ??
+    undefined,
 
     name: row.name,
     type: row.type,
@@ -124,8 +139,8 @@ export async function getProjects():
   const supabase =
     getSupabaseClient();
 
-  const user =
-    await requirePermanentUser();
+  const organization =
+    await requireActiveOrganization();
 
   const {
     data,
@@ -133,7 +148,10 @@ export async function getProjects():
   } = await supabase
     .from('builder_projects')
     .select('*')
-    .eq('user_id', user.id)
+    .eq(
+  'organization_id',
+  organization.id,
+)
     .order(
       'updated_at',
       {
@@ -158,8 +176,8 @@ export async function getProjectById(
   const supabase =
     getSupabaseClient();
 
-  const user =
-    await requirePermanentUser();
+  const organization =
+  await requireActiveOrganization();
 
   const {
     data,
@@ -168,7 +186,10 @@ export async function getProjectById(
     .from('builder_projects')
     .select('*')
     .eq('id', id)
-    .eq('user_id', user.id)
+    .eq(
+  'organization_id',
+  organization.id,
+)
     .maybeSingle();
 
   if (error) {
@@ -194,6 +215,9 @@ export async function saveProject(
 
   const user =
     await requirePermanentUser();
+
+  const organization =
+    await requireActiveOrganization();
 
   /*
    * EDITAR PROJETO EXISTENTE
@@ -243,7 +267,10 @@ export async function saveProject(
       .from('builder_projects')
       .update(updatePayload)
       .eq('id', input.id)
-      .eq('user_id', user.id)
+      .eq(
+  'organization_id',
+  organization.id,
+)
       .select('*')
       .single();
 
@@ -270,7 +297,10 @@ export async function saveProject(
       user_id:
         user.id,
 
-      name:
+    organization_id:
+        organization.id,
+
+    name:
         input.name.trim(),
 
       type:
@@ -317,8 +347,8 @@ export async function deleteProject(
   const supabase =
     getSupabaseClient();
 
-  const user =
-    await requirePermanentUser();
+  const organization =
+    await requireActiveOrganization();
 
   const {
     error,
@@ -326,7 +356,10 @@ export async function deleteProject(
     .from('builder_projects')
     .delete()
     .eq('id', id)
-    .eq('user_id', user.id);
+    .eq(
+  'organization_id',
+  organization.id,
+);
 
   if (error) {
     throw new Error(
@@ -342,8 +375,8 @@ export async function updateProjectStatus(
   const supabase =
     getSupabaseClient();
 
-  const user =
-    await requirePermanentUser();
+  const organization =
+    await requireActiveOrganization();
 
   const {
     error,
@@ -353,7 +386,10 @@ export async function updateProjectStatus(
       status,
     })
     .eq('id', id)
-    .eq('user_id', user.id);
+    .eq(
+  'organization_id',
+  organization.id,
+);
 
   if (error) {
     throw new Error(
@@ -417,6 +453,9 @@ export async function migrateLegacyProjectsToSupabase():
   const user =
     await requirePermanentUser();
 
+  const organization =
+    await requireActiveOrganization();
+
   /*
    * Busca projetos existentes para evitar
    * duplicação caso a migração seja executada
@@ -431,9 +470,9 @@ export async function migrateLegacyProjectsToSupabase():
       'name, created_at',
     )
     .eq(
-      'user_id',
-      user.id,
-    );
+  'organization_id',
+  organization.id,
+);
 
   if (existingError) {
     throw new Error(
@@ -477,11 +516,14 @@ export async function migrateLegacyProjectsToSupabase():
     } = await supabase
       .from('builder_projects')
       .insert({
-        user_id:
-          user.id,
+  user_id:
+    user.id,
 
-        name:
-          project.name,
+  organization_id:
+    organization.id,
+
+  name:
+    project.name,
 
         type:
           project.type,
