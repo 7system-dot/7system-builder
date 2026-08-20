@@ -28,10 +28,14 @@ import {
 } from '~/components/auth/ProtectedRoute';
 
 import {
-  getCurrentUser,
   logout,
   subscribeToAuthChanges,
 } from '~/lib/auth/auth.client';
+
+import {
+  getCurrentProfile,
+  PROFILE_UPDATED_EVENT,
+} from '~/lib/profiles/profile.client';
 
 interface AppShellProps {
   children: ReactNode;
@@ -82,41 +86,6 @@ const navigation = [
   },
 ];
 
-function getUserDisplayName(
-  user: {
-    email?: string | null;
-
-    user_metadata?: {
-      name?: unknown;
-    };
-  } | null,
-): string {
-  if (!user) {
-    return 'Usuário';
-  }
-
-  const metadataName =
-    user.user_metadata
-      ?.name;
-
-  if (
-    typeof metadataName ===
-      'string' &&
-    metadataName.trim()
-  ) {
-    return metadataName.trim();
-  }
-
-  if (user.email) {
-    return (
-      user.email
-        .split('@')[0] ||
-      'Usuário'
-    );
-  }
-
-  return 'Usuário';
-}
 
 export function AppShell({
   children,
@@ -160,100 +129,112 @@ export function AppShell({
   /*
    * Carrega o usuário atual.
    */
-  useEffect(() => {
-    let active = true;
 
-    async function loadUser() {
-      try {
-        const user =
-          await getCurrentUser();
+  /*
+ * Carrega o perfil atual.
+ */
+useEffect(() => {
+  let active = true;
 
+  async function loadProfile() {
+    try {
+      const profile =
+        await getCurrentProfile();
+
+      if (!active) {
+        return;
+      }
+
+      const fallbackName =
+        profile.email
+          .split('@')[0] ||
+        'Usuário';
+
+      setUserName(
+        profile.fullName.trim() ||
+        fallbackName,
+      );
+
+      setUserEmail(
+        profile.email,
+      );
+    } catch (error) {
+      console.error(
+        'Erro ao carregar perfil:',
+        error,
+      );
+    } finally {
+      if (active) {
+        setLoadingUser(
+          false,
+        );
+      }
+    }
+  }
+
+  void loadProfile();
+
+  /*
+   * Mantém o menu sincronizado
+   * com login/logout.
+   */
+  const unsubscribe =
+    subscribeToAuthChanges(
+      (
+        _event,
+        session,
+      ) => {
         if (!active) {
           return;
         }
 
-        if (!user) {
+        if (!session?.user) {
           setUserName(
             'Usuário',
           );
 
           setUserEmail('');
 
-          return;
-        }
-
-        setUserName(
-          getUserDisplayName(
-            user,
-          ),
-        );
-
-        setUserEmail(
-          user.email ?? '',
-        );
-      } catch (error) {
-        console.error(
-          'Erro ao carregar usuário:',
-          error,
-        );
-      } finally {
-        if (active) {
           setLoadingUser(
             false,
           );
+
+          return;
         }
-      }
+
+        void loadProfile();
+      },
+    );
+
+  /*
+   * Atualiza imediatamente quando
+   * Minha Conta salva o perfil.
+   */
+  function handleProfileUpdated() {
+    if (!active) {
+      return;
     }
 
-    void loadUser();
+    void loadProfile();
+  }
 
-    /*
-     * Mantém o menu sincronizado
-     * com alterações da sessão.
-     */
-    const unsubscribe =
-      subscribeToAuthChanges(
-        (
-          _event,
-          session,
-        ) => {
-          if (!active) {
-            return;
-          }
+  window.addEventListener(
+    PROFILE_UPDATED_EVENT,
+    handleProfileUpdated,
+  );
 
-          const user =
-            session?.user ??
-            null;
+  return () => {
+    active = false;
 
-          if (!user) {
-            setUserName(
-              'Usuário',
-            );
+    unsubscribe();
 
-            setUserEmail('');
-
-            return;
-          }
-
-          setUserName(
-            getUserDisplayName(
-              user,
-            ),
-          );
-
-          setUserEmail(
-            user.email ?? '',
-          );
-        },
-      );
-
-    return () => {
-      active = false;
-
-      unsubscribe();
-    };
-  }, []);
-
+    window.removeEventListener(
+      PROFILE_UPDATED_EVENT,
+      handleProfileUpdated,
+    );
+  };
+}, []);
+ 
   async function handleLogout() {
     if (loggingOut) {
       return;
