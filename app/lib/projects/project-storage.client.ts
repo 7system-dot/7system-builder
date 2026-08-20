@@ -1,4 +1,8 @@
 import {
+  requirePermanentUser,
+} from '~/lib/auth/auth.client';
+
+import {
   getSupabaseClient,
 } from '~/lib/supabase/supabase.client';
 
@@ -115,46 +119,13 @@ function rowToProject(
   };
 }
 
-async function ensureAuthenticatedUser() {
-  const supabase =
-    getSupabaseClient();
-
-  const {
-    data: userData,
-  } = await supabase.auth.getUser();
-
-  if (userData.user) {
-    return userData.user;
-  }
-
-  const {
-    data,
-    error,
-  } =
-    await supabase.auth.signInAnonymously();
-
-  if (error) {
-    throw new Error(
-      `Não foi possível autenticar no Supabase: ${error.message}`,
-    );
-  }
-
-  if (!data.user) {
-    throw new Error(
-      'Supabase não retornou um usuário autenticado.',
-    );
-  }
-
-  return data.user;
-}
-
 export async function getProjects():
   Promise<ProjectRecord[]> {
   const supabase =
     getSupabaseClient();
 
   const user =
-    await ensureAuthenticatedUser();
+    await requirePermanentUser();
 
   const {
     data,
@@ -188,7 +159,7 @@ export async function getProjectById(
     getSupabaseClient();
 
   const user =
-    await ensureAuthenticatedUser();
+    await requirePermanentUser();
 
   const {
     data,
@@ -222,7 +193,7 @@ export async function saveProject(
     getSupabaseClient();
 
   const user =
-    await ensureAuthenticatedUser();
+    await requirePermanentUser();
 
   /*
    * EDITAR PROJETO EXISTENTE
@@ -347,7 +318,7 @@ export async function deleteProject(
     getSupabaseClient();
 
   const user =
-    await ensureAuthenticatedUser();
+    await requirePermanentUser();
 
   const {
     error,
@@ -372,7 +343,7 @@ export async function updateProjectStatus(
     getSupabaseClient();
 
   const user =
-    await ensureAuthenticatedUser();
+    await requirePermanentUser();
 
   const {
     error,
@@ -444,7 +415,7 @@ export async function migrateLegacyProjectsToSupabase():
     getSupabaseClient();
 
   const user =
-    await ensureAuthenticatedUser();
+    await requirePermanentUser();
 
   /*
    * Busca projetos existentes para evitar

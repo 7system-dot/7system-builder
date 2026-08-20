@@ -244,6 +244,53 @@ export function isAnonymousUser(
 
 /*
  * -------------------------------------------------
+ * USUÁRIO PERMANENTE OBRIGATÓRIO
+ * -------------------------------------------------
+ */
+
+/*
+ * Utilizada pelas áreas privadas do
+ * 7System Builder.
+ *
+ * Não cria usuário anônimo.
+ *
+ * Sem sessão:
+ *   bloqueia.
+ *
+ * Usuário anônimo:
+ *   exige conversão da conta.
+ *
+ * Usuário permanente:
+ *   permite acesso.
+ */
+export async function requirePermanentUser():
+  Promise<User> {
+  const user =
+    await getCurrentUser();
+
+  if (!user) {
+    throw new BuilderAuthError(
+      'USER_NOT_AUTHENTICATED',
+      'Faça login para acessar esta área.',
+    );
+  }
+
+  if (
+    isAnonymousUser(
+      user,
+    )
+  ) {
+    throw new BuilderAuthError(
+      'USER_NOT_ANONYMOUS',
+      'Transforme sua sessão anônima em uma conta permanente para continuar.',
+    );
+  }
+
+  return user;
+}
+
+/*
+ * -------------------------------------------------
  * USUÁRIO ANÔNIMO
  * -------------------------------------------------
  */

@@ -11,6 +11,10 @@ import {
   Settings,
 } from 'lucide-react';
 
+import {
+  ProtectedRoute,
+} from '~/components/auth/ProtectedRoute';
+
 interface AppShellProps {
   children: ReactNode;
 }
@@ -64,6 +68,7 @@ export function AppShell({ children }: AppShellProps) {
   const location = useLocation();
 
   return (
+    <ProtectedRoute>
     <div
       className="flex min-h-screen w-full"
       style={{ backgroundColor: '#F8FAFC' }}
@@ -172,5 +177,6 @@ export function AppShell({ children }: AppShellProps) {
         {children}
       </main>
     </div>
+  </ProtectedRoute>
   );
 }

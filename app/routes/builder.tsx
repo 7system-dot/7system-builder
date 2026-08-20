@@ -1,6 +1,10 @@
 import { json, type MetaFunction } from '@remix-run/cloudflare';
 import { ClientOnly } from 'remix-utils/client-only';
 
+import {
+  ProtectedRoute,
+} from '~/components/auth/ProtectedRoute';
+
 import { BaseChat } from '~/components/chat/BaseChat';
 import { Chat } from '~/components/chat/Chat.client';
 import { Header } from '~/components/header/Header';
@@ -20,10 +24,22 @@ export const loader = () => json({});
 
 export default function Builder() {
   return (
-    <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
-      <BackgroundRays />
-      <Header />
-      <ClientOnly fallback={<BaseChat />}>{() => <Chat />}</ClientOnly>
-    </div>
+    <ProtectedRoute>
+      <div className="flex flex-col h-full w-full bg-bolt-elements-background-depth-1">
+        <BackgroundRays />
+
+        <Header />
+
+        <ClientOnly
+          fallback={
+            <BaseChat />
+          }
+        >
+          {() => (
+            <Chat />
+          )}
+        </ClientOnly>
+      </div>
+    </ProtectedRoute>
   );
 }
