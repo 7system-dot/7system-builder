@@ -1,8 +1,12 @@
+
 import {
   requirePermanentUser,
 } from '~/lib/auth/auth.client';
 
 import {
+  canDeleteProjects,
+  canEditProjects,
+  canViewProjects,
   requireActiveOrganization,
 } from '~/lib/organizations/organization.client';
 
@@ -26,7 +30,7 @@ export type ProjectStatus =
 export interface ProjectRecord {
   id: string;
 
-  organizationId?: string;
+  organizationId: string;
 
   name: string;
   type: ProjectType;
@@ -69,9 +73,7 @@ interface BuilderProjectRow {
 
   user_id: string;
 
-  organization_id:
-    | string
-    | null;
+  organization_id: string;
 
   name: string;
   type: ProjectType;
@@ -101,8 +103,7 @@ function rowToProject(
     id: row.id,
 
     organizationId:
-    row.organization_id ??
-    undefined,
+    row.organization_id,
 
     name: row.name,
     type: row.type,
@@ -142,6 +143,16 @@ export async function getProjects():
   const organization =
     await requireActiveOrganization();
 
+  if (
+  !canViewProjects(
+    organization.role,
+  )
+) {
+  throw new Error(
+    'Seu papel não permite visualizar projetos nesta organização.',
+  );
+}
+
   const {
     data,
     error,
@@ -178,6 +189,16 @@ export async function getProjectById(
 
   const organization =
   await requireActiveOrganization();
+
+  if (
+  !canViewProjects(
+    organization.role,
+  )
+) {
+  throw new Error(
+    'Seu papel não permite visualizar este projeto.',
+  );
+}
 
   const {
     data,
@@ -218,6 +239,16 @@ export async function saveProject(
 
   const organization =
     await requireActiveOrganization();
+
+    if (
+  !canEditProjects(
+    organization.role,
+  )
+) {
+  throw new Error(
+    'Seu papel permite apenas visualizar projetos.',
+  );
+}
 
   /*
    * EDITAR PROJETO EXISTENTE
@@ -350,6 +381,16 @@ export async function deleteProject(
   const organization =
     await requireActiveOrganization();
 
+  if (
+  !canDeleteProjects(
+    organization.role,
+  )
+) {
+  throw new Error(
+    'Somente proprietários e administradores podem excluir projetos.',
+  );
+}
+
   const {
     error,
   } = await supabase
@@ -377,6 +418,16 @@ export async function updateProjectStatus(
 
   const organization =
     await requireActiveOrganization();
+
+  if (
+  !canEditProjects(
+    organization.role,
+  )
+) {
+  throw new Error(
+    'Seu papel não permite alterar projetos.',
+  );
+}
 
   const {
     error,
@@ -455,6 +506,18 @@ export async function migrateLegacyProjectsToSupabase():
 
   const organization =
     await requireActiveOrganization();
+
+  if (
+  !canEditProjects(
+    organization.role,
+  )
+) {
+  /*
+   * Viewer não pode migrar dados
+   * para dentro da organização.
+   */
+  return 0;
+}
 
   /*
    * Busca projetos existentes para evitar
