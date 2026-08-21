@@ -79,10 +79,10 @@ const navigation = [
     enabled: false,
   },
   {
-    label: 'Configurações',
-    path: '/settings',
+    label: 'Empresa & Equipe',
+    path: '/organization',
     icon: Settings,
-    enabled: false,
+    enabled: true,
   },
 ];
 
