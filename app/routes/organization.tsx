@@ -18,7 +18,7 @@ import {
   Save,
   ShieldCheck,
   UserPlus,
-  Users,
+  
 } from 'lucide-react';
 
 import {
@@ -38,6 +38,10 @@ import {
 import type {
   OrganizationRole,
 } from '~/lib/organizations/organization.client';
+
+import {
+  InviteMemberButton,
+} from '~/components/organizations/InviteMemberButton';
 
 
 export const meta: MetaFunction = () => {
@@ -951,28 +955,12 @@ function OrganizationContent() {
             </p>
           </div>
 
-
-          {canManage && (
-            <button
-              type="button"
-              disabled
-              title="Será habilitado na etapa 2.7.7F"
-              className="flex h-11 cursor-not-allowed items-center gap-2 rounded-xl border px-4 text-sm font-semibold opacity-60"
-              style={{
-                borderColor:
-                  '#D4A72C',
-
-                color:
-                  '#B88918',
-              }}
-            >
-              <UserPlus
-                size={18}
-              />
-
-              Convidar usuário
-            </button>
-          )}
+        {canManage && (
+          <InviteMemberButton />
+      
+      
+       )}
+          
         </div>
 
 
