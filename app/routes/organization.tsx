@@ -17,7 +17,7 @@ import {
   Mail,
   Save,
   ShieldCheck,
-  UserPlus,
+  Users,
   
 } from 'lucide-react';
 
